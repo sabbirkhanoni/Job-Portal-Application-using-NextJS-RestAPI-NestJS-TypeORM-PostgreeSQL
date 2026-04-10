@@ -3,7 +3,6 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Pusher from 'pusher-js';
-import { useCookie } from 'next-cookie';
 import AxiosToastError from '@/utils/AxiosToastError';
 import {getUserFromToken} from '@/utils/getUser';
 
@@ -30,15 +29,58 @@ type Conversation = {
 
 export default function ChatPage() {
   const router = useRouter();
-  const cookies = useCookie();
-  const token = cookies.get('jwtToken');
   
+  const [token, setToken] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [employeeId, setEmployeeId] = useState<number | null>(null);
   const [adminId, setAdminId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Get token from localStorage and decode user on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('jwtToken');
+      
+      if (!storedToken) {
+        console.error('❌ No token found in localStorage');
+        router.push('/login');
+        return;
+      }
+
+      setToken(storedToken);
+
+      // Immediately decode user without waiting for state update
+      const user = getUserFromToken(storedToken);
+      console.log('Decoded user:', user);
+      
+      if (!user) {
+        console.error('Failed to decode token, redirecting to login');
+        router.push('/login');
+        return;
+      }
+      
+      console.log('User role:', user.role);
+      console.log('User ID:', user.id);
+      
+      if (!user.id) {
+        console.error('User ID not found in token. Please login again to get a new token.');
+        alert('Your session is outdated. Please login again.');
+        router.push('/login');
+        return;
+      }
+      
+      if (user.role === 'employee' || user.role === 'jobseeker' || user.role === 'agency') {
+        console.log('Setting employeeId to:', user.id);
+        setEmployeeId(user.id);
+      } else {
+        console.error('Invalid role:', user.role);
+        alert('Access denied. This page is for employees only.');
+        router.push('/login');
+      }
+    }
+  }, [router]);
 
   // Fetch admin user on component mount
   useEffect(() => {
@@ -76,45 +118,6 @@ export default function ChatPage() {
   }, [token]);
 
   useEffect(() => {
-    // Get user ID from token
-    console.log('Token exists:', !!token);
-    
-    if (!token) {
-      console.error('No token found, redirecting to login');
-      router.push('/login');
-      return;
-    }
-    
-    const user = getUserFromToken(token);
-    console.log('Decoded user:', user);
-    
-    if (!user) {
-      console.error('Failed to decode token, redirecting to login');
-      router.push('/login');
-      return;
-    }
-    
-    console.log('User role:', user.role);
-    console.log('User ID:', user.id);
-    
-    if (!user.id) {
-      console.error('User ID not found in token. Please login again to get a new token.');
-      alert('Your session is outdated. Please login again.');
-      router.push('/login');
-      return;
-    }
-    
-    if (user.role === 'employee' || user.role === 'jobseeker' || user.role === 'agency') {
-      console.log('Setting employeeId to:', user.id);
-      setEmployeeId(user.id);
-    } else {
-      console.error('Invalid role:', user.role);
-      alert('Access denied. This page is for employees only.');
-      router.push('/login');
-    }
-  }, [token, router]);
-
-  useEffect(() => {
     if (!employeeId || !adminId) return;
     
     console.log('Fetching messages for employeeId:', employeeId, 'adminId:', adminId);
@@ -141,8 +144,8 @@ export default function ChatPage() {
   }, [messages]);
 
   const fetchMessages = async () => {
-    if (!employeeId || !adminId) {
-      console.log('Cannot fetch messages: employeeId or adminId is null');
+    if (!employeeId || !adminId || !token) {
+      console.log('Cannot fetch messages: missing employeeId, adminId, or token');
       return;
     }
     
@@ -182,8 +185,8 @@ export default function ChatPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !employeeId || !adminId) {
-      console.log('Cannot send message: missing data', { newMessage: !!newMessage.trim(), employeeId, adminId });
+    if (!newMessage.trim() || !employeeId || !adminId || !token) {
+      console.log('Cannot send message: missing data', { newMessage: !!newMessage.trim(), employeeId, adminId, token: !!token });
       return;
     }
 
