@@ -1,9 +1,11 @@
 "use client"
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 export default function EmployeeDashboard() {
 
   const router = useRouter();
+  const [userData, setUserData] = useState<any>(null);
 
   // Mock data for employee
   const employeeData = {
@@ -85,6 +87,10 @@ export default function EmployeeDashboard() {
               </button>
               <button
                 onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    localStorage.removeItem('jwtToken');
+                    localStorage.removeItem('userData');
+                  }
                   router.push('/login');
                 }}
                 className="btn btn-outline bg-transparent hover:bg-red-500 text-red-500 hover:text-white border border-red-500 gap-2"
