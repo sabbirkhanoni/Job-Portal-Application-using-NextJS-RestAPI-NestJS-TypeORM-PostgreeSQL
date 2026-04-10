@@ -1,22 +1,20 @@
 "use client";
 import AxiosToastError from "@/utils/AxiosToastError";
-import axios, { Axios } from "axios";
+import axios from "axios";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, Suspense } from "react";
 import { toast } from "react-toastify";
 import { ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 
-export default function VerifyOTPPage() {
+function VerifyOTPContent() {
   const router = useRouter();
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingResend, setLoadingResend] = useState(false);
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
-  console.log("Email from query params:", email);
-  console.log("OTP state:", otp);
 
   async function resendOTP() {
     const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/forget-password`;
@@ -132,5 +130,24 @@ export default function VerifyOTPPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+      <div className="text-center">
+        <div className="loading loading-spinner loading-lg"></div>
+        <p className="mt-4 text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function VerifyOTPPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <VerifyOTPContent />
+    </Suspense>
   );
 }

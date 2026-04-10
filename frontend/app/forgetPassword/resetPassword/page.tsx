@@ -1,14 +1,13 @@
 "use client";
 import Link from "next/link";
-import { FormEvent, use, useState } from "react";
+import { FormEvent, useState, Suspense } from "react";
 import { toast } from "react-toastify";
 import axios from "axios";
 import AxiosToastError from "@/utils/AxiosToastError";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 
-export default function ResetPasswordPage() {
-
+function ResetPasswordContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const email = searchParams.get("email");
@@ -119,5 +118,24 @@ export default function ResetPasswordPage() {
                 </form>
             </div>
         </div>
+    );
+}
+
+function LoadingFallback() {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+            <div className="text-center">
+                <div className="loading loading-spinner loading-lg"></div>
+                <p className="mt-4 text-gray-600">Loading...</p>
+            </div>
+        </div>
+    );
+}
+
+export default function ResetPasswordPage() {
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <ResetPasswordContent />
+        </Suspense>
     );
 }
