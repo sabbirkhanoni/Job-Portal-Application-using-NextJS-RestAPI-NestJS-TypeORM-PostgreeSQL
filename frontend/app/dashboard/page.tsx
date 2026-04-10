@@ -1,8 +1,10 @@
+'use client';
 import StatsCards from '@/components/StatsCards';
 import UserBreakdown from '@/components/UserBreakdown';
 import QuickStats from '@/components/QuickStats';
 import { ButtonSectionDB } from '@/components/ButtonsDB';
 import LogOutButton from '@/components/LogOutButton';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 
 type Analytics = {
@@ -16,35 +18,53 @@ type Analytics = {
   totalApplications: number;
 };
 
-async function getAnalytics(): Promise<Analytics> {
-  try {
-    const res = await axios.get(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/analytics`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+// Mock data for initial render
+const mockAnalytics: Analytics = {
+  totalUsers: 0,
+  totalEmployees: 0,
+  totalJobseekers: 0,
+  totalJobs: 0,
+  activeUsers: 0,
+  inactiveUsers: 0,
+  pendingApprovals: 0,
+  totalApplications: 0,
+};
+
+export default function DashboardPage() {
+  const [analytics, setAnalytics] = useState<Analytics>(mockAnalytics);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const token = localStorage.getItem('jwtToken');
+        if (!token) {
+          console.warn('No token found, using mock data');
+          setLoading(false);
+          return;
+        }
+
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/analytics`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
+
+        setAnalytics(res.data?.data?.data || mockAnalytics);
+      } catch (error) {
+        console.error('Analytics fetch failed:', error);
+        setAnalytics(mockAnalytics);
+      } finally {
+        setLoading(false);
       }
-    );
-
-    return res.data?.data?.data;
-  } catch (error) {
-    console.error('Analytics fetch failed:', error);
-    return {
-      totalUsers: 0,
-      totalEmployees: 0,
-      totalJobseekers: 0,
-      totalJobs: 0,
-      activeUsers: 0,
-      inactiveUsers: 0,
-      pendingApprovals: 0,
-      totalApplications: 0,
     };
-  }
-}
 
-export default async function DashboardPage() {
-  const analytics = await getAnalytics(); // 🔥 SSR happens here
+    fetchAnalytics();
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50">
