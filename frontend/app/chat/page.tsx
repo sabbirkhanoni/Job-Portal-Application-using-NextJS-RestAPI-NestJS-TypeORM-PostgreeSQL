@@ -3,10 +3,8 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Pusher from 'pusher-js';
-import { useCookie } from 'next-cookie';
 import AxiosToastError from '@/utils/AxiosToastError';
 import {getUserFromToken} from '@/utils/getUser';
-import { string } from 'zod';
 
 // Type definitions
 type Message = {
@@ -31,8 +29,6 @@ type Conversation = {
 
 export default function ChatPage() {
   const router = useRouter();
-  const cookies = useCookie();
-  
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -41,19 +37,30 @@ export default function ChatPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [adminId, setAdminId] = useState<number | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const token: string | undefined = cookies.get('jwtToken');
-
+  // Get token from localStorage on mount
   useEffect(() => {
-  const user = getUserFromToken(token);
+    if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('jwtToken');
+      
+      if (!storedToken) {
+        router.push('/login');
+        return;
+      }
 
-    if (user && user.role === 'admin') {
-      setAdminId(user.id);
-    } else {
-      router.push('/login');
+      setToken(storedToken);
+
+      const user = getUserFromToken(storedToken);
+
+      if (user && user.role === 'admin') {
+        setAdminId(user.id);
+      } else {
+        router.push('/login');
+      }
     }
-  }, [token, router]);
+  }, [router]);
 
   useEffect(() => {
     if (!adminId) return;
@@ -85,7 +92,7 @@ export default function ChatPage() {
   }, [messages]);
 
   const fetchConversations = async () => {
-    if (!adminId) return;
+    if (!adminId || !token) return;
     
     try {
       const response = await axios.get(
@@ -103,6 +110,8 @@ export default function ChatPage() {
   };
 
   const fetchMessages = async (otherUserId: number) => {
+    if (!adminId || !token) return;
+    
     try {
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/messages/${adminId}/${otherUserId}`,
