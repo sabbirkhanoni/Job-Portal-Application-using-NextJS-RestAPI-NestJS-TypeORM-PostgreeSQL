@@ -6,8 +6,8 @@ import Pusher from 'pusher-js';
 import { useCookie } from 'next-cookie';
 import AxiosToastError from '@/utils/AxiosToastError';
 import {getUserFromToken} from '@/utils/getUser';
-import { toast } from 'react-toastify';
 
+// Type definitions
 type Message = {
   id: number;
   senderId: number;
@@ -31,23 +31,19 @@ type Conversation = {
 export default function ChatPage() {
   const router = useRouter();
   const cookies = useCookie();
-  const token = cookies.get('jwtToken') as string | undefined;
+  const token = cookies.get('jwtToken');
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   const [adminId, setAdminId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!token || typeof token !== 'string') {
-      toast.error('No valid token found, redirecting to login');
-      router.push('/login');
-      return;
-    }
-
+    // Get user ID from token
     const user = getUserFromToken(token);
     if (user && user.role === 'admin') {
       setAdminId(user.id);
@@ -61,7 +57,7 @@ export default function ChatPage() {
     
     fetchConversations();
     
-
+    // Initialize Pusher
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_PUBLISHABLE_KEY!, {
       cluster: process.env.NEXT_PUBLIC_CLUSTER!,
     });
@@ -69,7 +65,7 @@ export default function ChatPage() {
     const channel = pusher.subscribe(`chat-${adminId}`);
     channel.bind('new-message', (data: Message) => {
       setMessages(prev => [...prev, data]);
-      fetchConversations();
+      fetchConversations(); // Update conversation list
       scrollToBottom();
     });
 
@@ -126,7 +122,7 @@ export default function ChatPage() {
         }
       );
       
-      fetchConversations();
+      fetchConversations(); // Update unread count
     } catch (error) {
       AxiosToastError(error);
     }
@@ -202,9 +198,10 @@ export default function ChatPage() {
         </div>
       </div>
 
+      {/* Main Chat Container */}
       <div className="flex-1 overflow-hidden">
         <div className="grid lg:grid-cols-12 gap-6">
-          {/* Conversations- Left Side */}
+          {/* Conversations List - Left Side - SCROLLABLE */}
           <div className="lg:col-span-4">
             <div className="card bg-white shadow-lg">
               <div className="card-body p-0">
@@ -219,6 +216,7 @@ export default function ChatPage() {
                   />
                 </div>
 
+                {/* Conversations List */}
                 <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
                   {filteredConversations.map((conv) => (
                     <div
@@ -275,6 +273,7 @@ export default function ChatPage() {
             <div className="card bg-white shadow-lg sticky top-6">
               {selectedConversation ? (
                 <div className="card-body p-0 flex flex-col" style={{ height: 'calc(100vh - 220px)' }}>
+                  {/* Chat Header */}
                   <div className="flex items-center justify-between p-4 border-b bg-slate-50">
                     <div className="flex items-center gap-3">
                       <div className="avatar">

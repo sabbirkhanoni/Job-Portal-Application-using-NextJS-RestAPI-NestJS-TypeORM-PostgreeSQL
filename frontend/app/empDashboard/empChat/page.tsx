@@ -6,8 +6,8 @@ import Pusher from 'pusher-js';
 import { useCookie } from 'next-cookie';
 import AxiosToastError from '@/utils/AxiosToastError';
 import {getUserFromToken} from '@/utils/getUser';
-import { toast } from 'react-toastify';
 
+// Type definitions
 type Message = {
   id: number;
   senderId: number;
@@ -19,6 +19,14 @@ type Message = {
   read: boolean;
 }
 
+type Conversation = {
+  userId: number;
+  userName: string;
+  userAvatar: string;
+  lastMessage: string;
+  lastMessageTime: string;
+  unreadCount: number;
+}
 
 export default function ChatPage() {
   const router = useRouter();
@@ -48,13 +56,16 @@ export default function ChatPage() {
         // Find admin user
         const adminUser = response.data.data?.find((user: any) => user.role === 'admin');
         if (adminUser) {
+          console.log('Admin found:', adminUser);
           setAdminId(adminUser.id);
         } else {
+          console.error('No admin user found in database');
           // Fallback: try to use first user or ID 1
           setAdminId(1);
         }
       } catch (error) {
-        toast.error('Failed to fetch admin user');
+        console.error('Failed to fetch admin:', error);
+        // Fallback to ID 1
         setAdminId(1);
       }
     };
@@ -65,31 +76,40 @@ export default function ChatPage() {
   }, [token]);
 
   useEffect(() => {
-    if (!token || typeof token !== 'string') {
-      toast.error('No valid token found, redirecting to login');
+    // Get user ID from token
+    console.log('Token exists:', !!token);
+    
+    if (!token) {
+      console.error('No token found, redirecting to login');
       router.push('/login');
       return;
     }
     
     const user = getUserFromToken(token);
+    console.log('Decoded user:', user);
     
     if (!user) {
-      toast.error('Failed to decode token, redirecting to login');
+      console.error('Failed to decode token, redirecting to login');
       router.push('/login');
       return;
     }
     
+    console.log('User role:', user.role);
+    console.log('User ID:', user.id);
     
     if (!user.id) {
-      toast.error('Your session is outdated. Please login again.');
+      console.error('User ID not found in token. Please login again to get a new token.');
+      alert('Your session is outdated. Please login again.');
       router.push('/login');
       return;
     }
     
     if (user.role === 'employee' || user.role === 'jobseeker' || user.role === 'agency') {
+      console.log('Setting employeeId to:', user.id);
       setEmployeeId(user.id);
     } else {
-      toast.error('Access denied. This page is for employees only.');
+      console.error('Invalid role:', user.role);
+      alert('Access denied. This page is for employees only.');
       router.push('/login');
     }
   }, [token, router]);
@@ -97,6 +117,7 @@ export default function ChatPage() {
   useEffect(() => {
     if (!employeeId || !adminId) return;
     
+    console.log('Fetching messages for employeeId:', employeeId, 'adminId:', adminId);
     fetchMessages();
     
     // Initialize Pusher
@@ -121,8 +142,11 @@ export default function ChatPage() {
 
   const fetchMessages = async () => {
     if (!employeeId || !adminId) {
+      console.log('Cannot fetch messages: employeeId or adminId is null');
       return;
     }
+    
+    console.log('Fetching messages between:', employeeId, 'and', adminId);
     
     try {
       const response = await axios.get(
@@ -134,6 +158,7 @@ export default function ChatPage() {
         }
       );
       
+      console.log('Messages fetched:', response.data);
       setMessages(response.data.data);
       
       // Mark messages as read
@@ -158,8 +183,11 @@ export default function ChatPage() {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !employeeId || !adminId) {
+      console.log('Cannot send message: missing data', { newMessage: !!newMessage.trim(), employeeId, adminId });
       return;
     }
+
+    console.log('Sending message from', employeeId, 'to', adminId);
 
     try {
       const response = await axios.post(
@@ -176,9 +204,11 @@ export default function ChatPage() {
         }
       );
 
+      console.log('Message sent successfully:', response.data);
       setNewMessage('');
       fetchMessages();
     } catch (error: any) {
+      console.error('Send message error:', error.response?.data || error);
       AxiosToastError(error);
     }
   };
@@ -188,6 +218,7 @@ export default function ChatPage() {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Show loading only if employeeId or adminId is not set yet
   if (!employeeId || !adminId) {
     return (
       <div className="flex items-center justify-center h-screen">

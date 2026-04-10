@@ -9,8 +9,8 @@ export default function EmployeeDashboard() {
   const employeeData = {
     companyName: 'Tech Solutions Inc.',
     companyLogo: 'https://ui-avatars.com/api/?name=Tech+Solutions&background=2563eb&color=fff&size=200',
-    employeeName: 'John Smith',
-    employeeEmail: 'john.smith@techsolutions.com',
+    employeeName: 'Karim Khan',
+    employeeEmail: 'karim.khan@techsolutions.com',
     companyStatus: 'approved' as 'approved' | 'pending' | 'rejected',
     joinedDate: '2024-01-15'
   };
@@ -64,7 +64,7 @@ export default function EmployeeDashboard() {
                 </div>
               </div>
               <div>
-                <h1 className="text-3xl font-bold mb-1">Employee Dashboard, {employeeData.employeeName}!</h1>
+                <h1 className="text-3xl font-bold mb-1">{employeeData.employeeName}!</h1>
                 <p className="text-blue-200">{employeeData.companyName}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <span className={`badge badge-sm`}>

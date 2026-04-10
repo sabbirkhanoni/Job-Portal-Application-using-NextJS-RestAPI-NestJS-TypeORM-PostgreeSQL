@@ -44,11 +44,14 @@ export default function LoginPage() {
 
       const token = response.data.data.access_token;
 
-      cookie.set('jwtToken', token, {
-        maxAge: 24 * 60 * 60,
-        sameSite: 'strict',
+     cookie.set('jwtToken', token, {
+        maxAge: 24 * 60 * 60 * 1000, 
         httpOnly: true,
+        secure: true,
+        sameSite: 'strict' 
       });
+
+
 
       if (response.data.error) {
         toast.error(response.data.message || "Login failed!");
