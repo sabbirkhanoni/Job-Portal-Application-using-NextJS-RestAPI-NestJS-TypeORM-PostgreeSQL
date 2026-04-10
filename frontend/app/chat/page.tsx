@@ -6,6 +6,7 @@ import Pusher from 'pusher-js';
 import { useCookie } from 'next-cookie';
 import AxiosToastError from '@/utils/AxiosToastError';
 import {getUserFromToken} from '@/utils/getUser';
+import { string } from 'zod';
 
 // Type definitions
 type Message = {
@@ -31,7 +32,7 @@ type Conversation = {
 export default function ChatPage() {
   const router = useRouter();
   const cookies = useCookie();
-  const token = cookies.get('jwtToken');
+  
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -42,9 +43,11 @@ export default function ChatPage() {
   const [adminId, setAdminId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const token: string | undefined = cookies.get('jwtToken');
+
   useEffect(() => {
-    // Get user ID from token
-    const user = getUserFromToken(token);
+  const user = getUserFromToken(token);
+
     if (user && user.role === 'admin') {
       setAdminId(user.id);
     } else {
