@@ -1,5 +1,5 @@
 # Job Portal Application
-🔗 **Live Demo:** [job-portal-application-using-next-j.vercel.app](https://job-portal-application-using-next-j.vercel.app)
+🔗 **Live Demo:** [job-portal-environment.vercel.app](https://job-portal-environment.vercel.app)
 
 **The installation guide is provided below, after the User Interface (UI) section.**
 
